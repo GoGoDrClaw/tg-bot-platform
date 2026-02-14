@@ -1,0 +1,16 @@
+{
+  "name": "bot-platform",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "bootstrap": "npm install --workspaces",
+    "dev:api": "npm --workspace @bot-platform/bot-manager run dev",
+    "dev:sample-bot": "npm --workspace @bot-platform/sample-bot run dev"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}

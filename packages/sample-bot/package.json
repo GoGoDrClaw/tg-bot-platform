@@ -1,0 +1,27 @@
+{
+  "name": "@bot-platform/sample-bot",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "ts-node-dev --respawn src/index.ts",
+    "build": "tsc -b"
+  },
+  "keywords": ["telegram", "bot"],
+  "dependencies": {
+    "grammy": "^1.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  },
+  "bot": {
+    "type": "telegram",
+    "env": {
+      "required": ["BOT_TOKEN"],
+      "optional": ["DEBUG"]
+    },
+    "os-packages": []
+  }
+}

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bot Platform UI</title>
+    <script src="auth.js"></script>
+    <script>
+      const ASSET_VERSION = new URLSearchParams(window.location.search).get("v") || Date.now().toString();
+      const css = document.createElement("link");
+      css.rel = "stylesheet";
+      css.href = `./styles.css?v=${ASSET_VERSION}`;
+      document.head.appendChild(css);
+    </script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  </head>
+  <body>
+    <header>
+      <div class="brand">bot-platform</div>
+      <div class="pill">PaaS for Telegram bots</div>
+      <div class="user-menu" id="userMenu">
+        <div class="user-info">
+          <span id="userName">Loading...</span>
+          <button class="secondary small" onclick="logout()">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="hero">
+      <div class="hero-row">
+        <div>
+          <div class="hero-title">Deploy & test Telegram bots fast</div>
+          <p>1 bot = 1 container/pod. Swarm or K8s. Webhooks auto-wired via Caddy.</p>
+        </div>
+        <div class="hero-actions">
+          <button class="secondary" hx-on:click="loadBots()">Sync bots</button>
+          <button hx-on:click="openCreateModal()">New bot</button>
+        </div>
+      </div>
+    </div>
+
+    <main>
+      <section>
+        <div class="section-header">
+          <h2>Bots</h2>
+          <button class="secondary" hx-on:click="openCreateModal()">+ Create bot</button>
+        </div>
+        <div id="bots" class="bots"></div>
+      <div class="meta hidden" id="emptyState">No bots yet. Hit “Create bot” to start.</div>
+      </section>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="modal-backdrop hidden" id="createModal" hx-on:click="backdropClose(event)">
+      <div class="modal" hx-on:click="event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Create bot</h3>
+          <button class="icon-btn" aria-label="Close" hx-on:click="closeCreateModal()">×</button>
+        </div>
+        <div class="row">
+          <div>
+            <label for="name">Name</label>
+            <input id="name" placeholder="demo-bot" />
+          </div>
+          <div>
+            <label for="runtime">Runtime</label>
+            <select id="runtime">
+              <option value="docker">Docker (single container)</option>
+              <option value="swarm">Docker Swarm</option>
+              <option value="k8s">Kubernetes</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="sourceType">Source type</label>
+            <select id="sourceType" hx-on:change="updateSourcePlaceholder(event)">
+              <option value="local">local path</option>
+              <option value="git">git</option>
+              <option value="zip">zip</option>
+            </select>
+          </div>
+          <div>
+            <label for="source">Source</label>
+            <input id="source" placeholder="./packages/sample-bot or git url" />
+            <input id="sourceFile" type="file" class="hidden" hx-on:change="handleFile(event)" />
+          </div>
+        </div>
+        <div>
+          <label for="token">BOT_TOKEN</label>
+          <input id="token" placeholder="12345:ABC..." />
+        </div>
+        <div class="actions actions-top">
+          <button id="createBtn" hx-on:click="createBot()">Create</button>
+          <button class="secondary" hx-on:click="fillSample()">Use sample bot path</button>
+        </div>
+        <div>
+          <label>Env (optional)</label>
+          <div id="envRows" class="stacked"></div>
+          <button class="secondary" type="button" hx-on:click="addEnvRow()">+ Add env</button>
+        </div>
+        <pre id="createResult" aria-live="polite"></pre>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="envModal" hx-on:click="backdropClose(event, 'envModal')">
+      <div class="modal" hx-on:click="event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Edit env</h3>
+          <button class="icon-btn" aria-label="Close" hx-on:click="closeEnvModal()">×</button>
+        </div>
+        <div id="envRowsEdit" class="stacked"></div>
+        <div class="actions actions-top">
+          <button class="primary" hx-on:click="saveEnv()">Save</button>
+          <button class="secondary" hx-on:click="addEnvRowEdit()">+ Add env</button>
+        </div>
+        <pre id="envResult" aria-live="polite"></pre>
+      </div>
+    </div>
+    <script>
+      // Check authentication on page load
+      window.addEventListener("DOMContentLoaded", async () => {
+        // Redirect to login if not authenticated
+        if (!requireAuth()) {
+          return;
+        }
+
+        // Check auth status and load user
+        const user = await checkAuthStatus();
+        if (!user) {
+          window.location.href = "/login.html";
+          return;
+        }
+
+        // Display user info in header
+        const userName = user.firstName || user.username || "User";
+        document.getElementById("userName").textContent = `${userName} (${user.role})`;
+      });
+    </script>
+    <script src="app.js"></script>
+  </body>
+</html>

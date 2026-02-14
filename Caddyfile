@@ -1,0 +1,15 @@
+{
+  # Global options
+  auto_https off
+}
+
+:80 {
+  @webhook path_regexp webhook ^/w/(?P<bot_id>[a-zA-Z0-9_-]+)
+  handle @webhook {
+    reverse_proxy bot-{http.regexp.webhook.bot_id}:8080
+  }
+
+  handle {
+    reverse_proxy http://bot-manager:3000
+  }
+}
