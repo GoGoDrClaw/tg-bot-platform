@@ -164,12 +164,17 @@ export class BotService {
       throw new Error("Missing BOT_TOKEN env");
     }
 
+    // Get admin IDs for the bot
+    const { ownerId, adminIds } = await this.getBotAdminIds(bot.id);
+
     const env = {
       BOT_TOKEN: token,
       BOT_ID: bot.id,
       PORT: port.toString(),
       WEBHOOK_URL: bot.webhookUrl,
       TELEGRAM_API_BASE: this.getTelegramApiBase(),
+      ...(ownerId && { BOT_OWNER_ID: ownerId }),
+      ...(adminIds.length > 0 && { BOT_ADMIN_IDS: adminIds.join(",") }),
       ...this.envMap(bot),
     };
 
@@ -252,12 +257,17 @@ export class BotService {
       throw new Error("Missing BOT_TOKEN env");
     }
 
+    // Get admin IDs for the bot
+    const { ownerId, adminIds } = await this.getBotAdminIds(bot.id);
+
     const env = {
       BOT_TOKEN: token,
       BOT_ID: bot.id,
       PORT: port.toString(),
       WEBHOOK_URL: bot.webhookUrl,
       TELEGRAM_API_BASE: this.getTelegramApiBase(),
+      ...(ownerId && { BOT_OWNER_ID: ownerId }),
+      ...(adminIds.length > 0 && { BOT_ADMIN_IDS: adminIds.join(",") }),
       ...this.envMap(bot),
     };
 
@@ -490,12 +500,17 @@ export class BotService {
       throw new Error("Missing BOT_TOKEN env");
     }
 
+    // Get admin IDs for the bot
+    const { ownerId, adminIds } = await this.getBotAdminIds(bot.id);
+
     const env = {
       BOT_TOKEN: token,
       BOT_ID: bot.id,
       PORT: port.toString(),
       WEBHOOK_URL: bot.webhookUrl,
       TELEGRAM_API_BASE: this.getTelegramApiBase(),
+      ...(ownerId && { BOT_OWNER_ID: ownerId }),
+      ...(adminIds.length > 0 && { BOT_ADMIN_IDS: adminIds.join(",") }),
       ...this.envMap(bot),
     };
 
@@ -839,6 +854,26 @@ export class BotService {
 
   private isRuntimeOutdated(bot: Bot): boolean {
     return this.compareSemver(this.ensureRuntimeVersion(bot), CURRENT_RUNTIME_VERSION) < 0;
+  }
+
+  private async getBotAdminIds(botId: string): Promise<{ ownerId?: string; adminIds: string[] }> {
+    const accessList = await this.accessRepo.find({
+      where: { bot: { id: botId } },
+      relations: ["user"],
+    });
+
+    let ownerId: string | undefined;
+    const adminIds: string[] = [];
+
+    for (const access of accessList) {
+      if (access.permission === "owner") {
+        ownerId = access.user.telegramId.toString();
+      } else if (["admin", "editor"].includes(access.permission)) {
+        adminIds.push(access.user.telegramId.toString());
+      }
+    }
+
+    return { ownerId, adminIds };
   }
 
   private serializeBot(bot: Bot) {
