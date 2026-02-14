@@ -38,11 +38,18 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 
 /**
  * Check if any users exist (for welcome screen)
+ * Also returns dev mode availability
  */
 app.get("/auth/check", async (_req, res) => {
   try {
     const hasUsers = await userService.hasUsers();
-    res.json({ hasUsers });
+    const isDev = process.env.NODE_ENV !== "production";
+    const devBypassEnabled = isDev && process.env.DEV_BYPASS_AUTH === "true";
+
+    res.json({
+      hasUsers,
+      devBypassEnabled,
+    });
   } catch (err: any) {
     log.error("auth check error", err);
     res.status(500).json({ error: "Internal server error" });
@@ -83,6 +90,79 @@ app.post("/auth/telegram", rateLimit(10, 60000), async (req, res) => {
     });
   } catch (err: any) {
     log.error("telegram auth error", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * Dev Login (bypass Telegram auth for local development)
+ * Only works when DEV_BYPASS_AUTH=true and NODE_ENV !== production
+ */
+app.post("/auth/dev-login", async (req, res) => {
+  try {
+    // Security checks
+    const isDev = process.env.NODE_ENV !== "production";
+    const bypassEnabled = process.env.DEV_BYPASS_AUTH === "true";
+
+    if (!isDev || !bypassEnabled) {
+      log.warn("Dev login attempt rejected - not in dev mode or bypass not enabled");
+      return res.status(403).json({
+        error: "Dev login is only available in development mode with DEV_BYPASS_AUTH=true"
+      });
+    }
+
+    // Check if request is from localhost
+    const clientIp = req.ip || req.socket.remoteAddress || "";
+    const isLocalhost = clientIp === "127.0.0.1" ||
+                       clientIp === "::1" ||
+                       clientIp === "::ffff:127.0.0.1" ||
+                       clientIp.includes("localhost");
+
+    if (!isLocalhost) {
+      log.warn(`Dev login attempt from non-localhost IP: ${clientIp}`);
+      return res.status(403).json({ error: "Dev login only available from localhost" });
+    }
+
+    // Get dev user config from env
+    const devUserId = Number(process.env.DEV_USER_TELEGRAM_ID || 123456789);
+    const devUsername = process.env.DEV_USER_USERNAME || "devuser";
+    const devFirstName = process.env.DEV_USER_FIRST_NAME || "Dev";
+    const devLastName = process.env.DEV_USER_LAST_NAME || "User";
+
+    // Create mock Telegram auth data
+    const mockAuthData = {
+      id: devUserId,
+      username: devUsername,
+      first_name: devFirstName,
+      last_name: devLastName,
+      photo_url: undefined,
+      auth_date: Math.floor(Date.now() / 1000),
+      hash: "dev-bypass-hash",
+    };
+
+    // Find or create dev user
+    const user = await userService.findOrCreateUser(mockAuthData);
+
+    // Generate JWT token
+    const token = authService.generateToken(user.id, user.telegramId, user.role);
+
+    log.warn(`⚠️  DEV LOGIN BYPASS USED - User: ${user.username} (${user.telegramId})`);
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        telegramId: user.telegramId,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        photoUrl: user.photoUrl,
+        role: user.role,
+      },
+      devMode: true,
+    });
+  } catch (err: any) {
+    log.error("dev login error", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });

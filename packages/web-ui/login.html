@@ -28,6 +28,19 @@
           <div id="telegram-login-button"></div>
         </div>
 
+        <!-- Dev Login (only shown in dev mode) -->
+        <div id="dev-login-section" class="dev-login-section" style="display: none">
+          <div class="dev-login-divider">
+            <span>or</span>
+          </div>
+          <button class="dev-login-button" onclick="handleDevLogin()">
+            🔧 Dev Login (Skip Auth)
+          </button>
+          <p class="dev-login-hint">
+            <small>⚠️ Development mode - bypasses Telegram authentication</small>
+          </p>
+        </div>
+
         <div class="login-footer">
           <p>
             <small>
@@ -39,7 +52,7 @@
     </div>
 
     <script>
-      // Check if this is the first user
+      // Check if this is the first user and dev mode availability
       async function checkFirstUser() {
         try {
           const response = await fetch("/auth/check");
@@ -49,8 +62,51 @@
             document.getElementById("welcome-message").style.display = "block";
             document.getElementById("regular-login").style.display = "none";
           }
+
+          // Show dev login button if dev bypass is enabled
+          if (data.devBypassEnabled) {
+            document.getElementById("dev-login-section").style.display = "block";
+          }
         } catch (error) {
           console.error("Failed to check user status:", error);
+        }
+      }
+
+      // Handle Dev Login
+      async function handleDevLogin() {
+        const errorEl = document.getElementById("login-error");
+        errorEl.style.display = "none";
+
+        try {
+          const response = await fetch("/auth/dev-login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || "Dev login failed");
+          }
+
+          const data = await response.json();
+
+          // Save token and user
+          setToken(data.token);
+          setCurrentUser(data.user);
+
+          // Store dev mode flag
+          if (data.devMode) {
+            localStorage.setItem("dev_mode", "true");
+          }
+
+          // Redirect to main page
+          window.location.href = "/";
+        } catch (error) {
+          console.error("Dev login failed:", error);
+          errorEl.textContent = error.message || "Dev login failed. Make sure DEV_BYPASS_AUTH=true in your .env";
+          errorEl.style.display = "block";
         }
       }
 

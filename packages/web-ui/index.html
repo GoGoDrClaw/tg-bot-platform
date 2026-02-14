@@ -26,6 +26,11 @@
       </div>
     </header>
 
+    <!-- Dev Mode Warning Banner -->
+    <div id="devModeBanner" class="dev-mode-banner" style="display: none">
+      ⚠️ <strong>DEVELOPMENT MODE</strong> - Authentication bypassed
+    </div>
+
     <div class="hero">
       <div class="hero-row">
         <div>
@@ -136,6 +141,12 @@
         // Display user info in header
         const userName = user.firstName || user.username || "User";
         document.getElementById("userName").textContent = `${userName} (${user.role})`;
+
+        // Show dev mode banner if in dev mode
+        const isDevMode = localStorage.getItem("dev_mode") === "true";
+        if (isDevMode) {
+          document.getElementById("devModeBanner").style.display = "block";
+        }
       });
     </script>
     <script src="app.js"></script>
