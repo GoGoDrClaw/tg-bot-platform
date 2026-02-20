@@ -12,8 +12,6 @@ jobs:
   publish:
     name: Build & publish @nikovonlas/bot-sdk
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write  # required to get OIDC token from GitHub
 
     steps:
       - uses: actions/checkout@v4
@@ -21,6 +19,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: npm install --workspaces
@@ -43,15 +42,8 @@ jobs:
             echo "Publishing $PKG_VERSION (npm has $NPM_VERSION)"
           fi
 
-      - name: Authenticate with npm via OIDC
-        if: steps.version_check.outputs.skip == 'false'
-        run: |
-          # Get OIDC token from GitHub Actions with audience=npm
-          OIDC_TOKEN=$(curl -sH "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=npm" | jq -r '.value')
-          # Set it as the npm auth token — npm Trusted Publisher accepts it
-          npm config set //registry.npmjs.org/:_authToken "$OIDC_TOKEN"
-
       - name: Publish to npm
         if: steps.version_check.outputs.skip == 'false'
-        run: npm publish --workspace @nikovonlas/bot-sdk --access public --provenance
+        run: npm publish --workspace @nikovonlas/bot-sdk --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
