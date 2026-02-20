@@ -27,11 +27,18 @@ export function loadConfig(): BotConfig {
     );
   }
 
-  const adminIdsRaw = process.env.BOT_ADMIN_IDS || "";
+  const adminIdsRaw = [
+    process.env.BOT_OWNER_ID,       // owner is always an admin
+    process.env.BOT_ADMIN_IDS,      // platform users with admin access
+    process.env.EXTRA_ADMIN_IDS,    // extra admins from bot env manifest
+  ]
+    .filter(Boolean)
+    .join(",");
   const adminIds = adminIdsRaw
     .split(",")
     .map((id) => id.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((id, i, arr) => arr.indexOf(id) === i); // deduplicate
 
   // Collect all custom env variables
   // Bot manager already filters env to only include allowed variables from manifest
@@ -46,6 +53,7 @@ export function loadConfig(): BotConfig {
     "DATABASE_URL",
     "BOT_OWNER_ID",
     "BOT_ADMIN_IDS",
+    "EXTRA_ADMIN_IDS",
   ]);
 
   for (const [key, value] of Object.entries(process.env)) {
