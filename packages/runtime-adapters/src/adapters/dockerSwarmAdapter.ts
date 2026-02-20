@@ -1,6 +1,8 @@
 import { DeployRequest, RuntimeAdapter } from "../types";
 import { runCommand } from "../utils";
 import { createLogger } from "../logger";
+import { existsSync } from "fs";
+import { resolve } from "path";
 
 const log = createLogger("SwarmAdapter");
 
@@ -39,8 +41,16 @@ export class DockerSwarmAdapter implements RuntimeAdapter {
       "--restart-condition",
       "any",
       ...envArgs,
-      request.imageName,
     ];
+
+    // Mount SQLite database file for bot (if exists)
+    const dbPath = resolve(process.cwd(), "storage", "bots", request.botId, "bot.db");
+    if (existsSync(dbPath)) {
+      args.push("--mount", `type=bind,src=${dbPath},dst=/app/data/bot.db`);
+      log.info(`mounting bot database ${dbPath} -> /app/data/bot.db`);
+    }
+
+    args.push(request.imageName);
 
     await runCommand("docker", args);
   }

@@ -14,6 +14,9 @@ export class Bot {
   @Column()
   name!: string;
 
+  @Column({ unique: true, nullable: true })
+  code?: string;
+
   @Column({ type: "varchar" })
   status!: BotStatus;
 

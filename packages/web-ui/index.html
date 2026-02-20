@@ -15,8 +15,12 @@
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   </head>
   <body>
+    <!-- Dev Mode Warning Banner -->
+    <div id="devModeBanner" class="dev-mode-banner" style="display: none">
+      ⚠️ <strong>DEVELOPMENT MODE</strong> - Authentication bypassed
+    </div>
+
     <header>
-      <div class="brand">bot-platform</div>
       <div class="pill">PaaS for Telegram bots</div>
       <div class="user-menu" id="userMenu">
         <div class="user-info">
@@ -25,24 +29,6 @@
         </div>
       </div>
     </header>
-
-    <!-- Dev Mode Warning Banner -->
-    <div id="devModeBanner" class="dev-mode-banner" style="display: none">
-      ⚠️ <strong>DEVELOPMENT MODE</strong> - Authentication bypassed
-    </div>
-
-    <div class="hero">
-      <div class="hero-row">
-        <div>
-          <div class="hero-title">Deploy & test Telegram bots fast</div>
-          <p>1 bot = 1 container/pod. Swarm or K8s. Webhooks auto-wired via Caddy.</p>
-        </div>
-        <div class="hero-actions">
-          <button class="secondary" hx-on:click="loadBots()">Sync bots</button>
-          <button hx-on:click="openCreateModal()">New bot</button>
-        </div>
-      </div>
-    </div>
 
     <main>
       <section>
@@ -66,8 +52,16 @@
         <div class="row">
           <div>
             <label for="name">Name</label>
-            <input id="name" placeholder="demo-bot" />
+            <input id="name" placeholder="Мой бот" hx-on:input="updateBotCode()" />
+            <small class="field-hint">Display name (can use any language)</small>
           </div>
+          <div>
+            <label for="botCode">Code</label>
+            <input id="botCode" placeholder="moy-bot" />
+            <small class="field-hint">Unique code (auto-generated from name)</small>
+          </div>
+        </div>
+        <div class="row">
           <div>
             <label for="runtime">Runtime</label>
             <select id="runtime">
@@ -118,9 +112,48 @@
         <div id="envRowsEdit" class="stacked"></div>
         <div class="actions actions-top">
           <button class="primary" hx-on:click="saveEnv()">Save</button>
-          <button class="secondary" hx-on:click="addEnvRowEdit()">+ Add env</button>
         </div>
         <pre id="envResult" aria-live="polite"></pre>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="updateModal" hx-on:click="backdropClose(event, 'updateModal')">
+      <div class="modal" hx-on:click="event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Update Bot</h3>
+          <button class="icon-btn" aria-label="Close" hx-on:click="closeUpdateModal()">×</button>
+        </div>
+        <div id="updateStatus" class="update-status"></div>
+        <div id="updateZipSource" style="display: none">
+          <label for="updateZipSourceValue">New ZIP Source Path</label>
+          <input id="updateZipSourceValue" placeholder="/path/to/new-bot.zip" />
+        </div>
+        <div class="actions actions-top">
+          <button id="updateBtn" class="primary" hx-on:click="performUpdate()">Update</button>
+          <button class="secondary" hx-on:click="closeUpdateModal()">Cancel</button>
+        </div>
+        <pre id="updateResult" aria-live="polite"></pre>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="deleteModal" hx-on:click="backdropClose(event, 'deleteModal')">
+      <div class="modal modal-danger" hx-on:click="event.stopPropagation()">
+        <div class="modal-header">
+          <h3>⚠️ Delete Bot</h3>
+          <button class="icon-btn" aria-label="Close" hx-on:click="closeDeleteModal()">×</button>
+        </div>
+        <div class="delete-warning">
+          <p><strong>Warning:</strong> This action cannot be undone. This will permanently delete the bot and all associated data.</p>
+          <p>To confirm, type the bot code <code id="deleteBotCode" class="delete-code"></code> below:</p>
+        </div>
+        <div>
+          <label for="deleteConfirmInput">Bot Code</label>
+          <input id="deleteConfirmInput" placeholder="Enter bot code to confirm" autocomplete="off" />
+        </div>
+        <div class="actions actions-top">
+          <button class="danger" hx-on:click="performDelete()">Delete permanently</button>
+          <button class="secondary" hx-on:click="closeDeleteModal()">Cancel</button>
+        </div>
       </div>
     </div>
     <script>

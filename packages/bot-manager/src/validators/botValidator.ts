@@ -40,10 +40,22 @@ function validateManifest(manifest: BotManifest): ValidationResult {
   if (manifest.type !== "telegram") {
     return { ok: false, reason: "manifest.type must be telegram" };
   }
-  const requiredEnv = manifest.env?.required ?? [];
-  if (!requiredEnv.includes("BOT_TOKEN")) {
-    return { ok: false, reason: "manifest.env.required must include BOT_TOKEN" };
+
+  // Validate env format
+  if (manifest.env) {
+    // BOT_TOKEN should NOT be in manifest - it's a system variable
+    if ("BOT_TOKEN" in manifest.env) {
+      return { ok: false, reason: "BOT_TOKEN should not be in manifest.env - it's managed by the platform" };
+    }
+
+    // Validate each env variable
+    for (const [key, config] of Object.entries(manifest.env)) {
+      if (typeof config !== "object") {
+        return { ok: false, reason: `manifest.env.${key} must be an object` };
+      }
+    }
   }
+
   if (manifest["os-packages"]) {
     if (!Array.isArray(manifest["os-packages"])) {
       return { ok: false, reason: "manifest.os-packages must be an array" };
@@ -64,3 +76,25 @@ export function loadBotManifest(_root: string, pkg?: any): BotManifest | null {
   }
   return null;
 }
+
+/**
+ * Get list of allowed environment variables from manifest
+ * Returns object with env name as key and config as value
+ */
+export function getAllowedEnvVariables(manifest: BotManifest): Record<string, { required: boolean; description?: string; default?: string; configKey?: string }> {
+  if (!manifest.env) return {};
+
+  const allowed: Record<string, { required: boolean; description?: string; default?: string; configKey?: string }> = {};
+
+  for (const [key, config] of Object.entries(manifest.env)) {
+    allowed[key] = {
+      required: config.required ?? false,
+      description: config.description,
+      default: config.default,
+      configKey: config.configKey,
+    };
+  }
+
+  return allowed;
+}
+

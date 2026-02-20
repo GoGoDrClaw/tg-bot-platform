@@ -53,6 +53,13 @@ export class DockerAdapter implements RuntimeAdapter {
       log.info(`mounting bot-api files volume ${BOT_API_FILES_VOLUME} -> /var/lib/telegram-bot-api`);
     }
 
+    // Mount SQLite database file for bot (if exists)
+    const dbPath = resolve(process.cwd(), "storage", "bots", request.botId, "bot.db");
+    if (existsSync(dbPath)) {
+      args.push("--mount", `type=bind,src=${dbPath},dst=/app/data/bot.db`);
+      log.info(`mounting bot database ${dbPath} -> /app/data/bot.db`);
+    }
+
     args.push(request.imageName);
 
     await runCommand("docker", args);

@@ -9,12 +9,16 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
-COPY tsconfig.base.json /tsconfig.base.json
+RUN mkdir -p /bot-platform
+COPY tsconfig.base.json /bot-platform/tsconfig.base.json
 RUN npm install express
 RUN npm run build || npm run build --if-present
 RUN npm prune --omit=dev
 
 COPY runtime-server.js ./runtime-server.js
+
+# Create directory for SQLite database
+RUN mkdir -p /app/data
 
 ENV PORT=3000
 ENV BOT_ID=""

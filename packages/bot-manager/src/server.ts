@@ -111,15 +111,21 @@ app.post("/auth/dev-login", async (req, res) => {
       });
     }
 
-    // Check if request is from localhost
+    // Check if request is from localhost or private network (Docker)
     const clientIp = req.ip || req.socket.remoteAddress || "";
-    const isLocalhost = clientIp === "127.0.0.1" ||
-                       clientIp === "::1" ||
-                       clientIp === "::ffff:127.0.0.1" ||
-                       clientIp.includes("localhost");
+    const forwardedFor = req.headers["x-forwarded-for"] as string | undefined;
+    const effectiveIp = forwardedFor?.split(",")[0]?.trim() || clientIp;
+
+    const isLocalhost = effectiveIp === "127.0.0.1" ||
+                       effectiveIp === "::1" ||
+                       effectiveIp === "::ffff:127.0.0.1" ||
+                       effectiveIp.includes("localhost") ||
+                       effectiveIp.startsWith("172.") ||      // Docker networks
+                       effectiveIp.startsWith("192.168.") ||  // Local networks
+                       effectiveIp.startsWith("10.");         // Private networks
 
     if (!isLocalhost) {
-      log.warn(`Dev login attempt from non-localhost IP: ${clientIp}`);
+      log.warn(`Dev login attempt from non-localhost IP: ${effectiveIp} (original: ${clientIp})`);
       return res.status(403).json({ error: "Dev login only available from localhost" });
     }
 
@@ -363,6 +369,15 @@ app.post("/bots/:id/webhook/delete", authMiddleware, async (req, res) => {
   }
 });
 
+app.get("/bots/:id/update/status", authMiddleware, async (req, res) => {
+  try {
+    const status = await botService.checkUpdateStatus(req.params.id);
+    res.json(status);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 app.get("/bots/:id/git/status", authMiddleware, async (req, res) => {
   try {
     const status = await botService.gitStatus(req.params.id);
@@ -381,6 +396,39 @@ app.post("/bots/:id/git/upgrade", authMiddleware, async (req, res) => {
   }
 });
 
+app.post("/bots/:id/update", authMiddleware, async (req, res) => {
+  const stream = String(req.query.stream ?? "") === "true";
+  if (stream) {
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Transfer-Encoding", "chunked");
+  }
+  try {
+    const bot = await botService.updateBot(
+      req.params.id,
+      req.body,
+      stream
+        ? (chunk) => {
+            const withBreak = chunk.endsWith("\n") ? chunk : `${chunk}\n`;
+            res.write(withBreak);
+          }
+        : undefined
+    );
+    if (stream) {
+      res.write(`\n--- BOT UPDATED ---\n${JSON.stringify(bot, null, 2)}\n`);
+      res.end();
+    } else {
+      res.json(bot);
+    }
+  } catch (err: any) {
+    if (stream) {
+      res.write(`\nERROR: ${err.message}\n`);
+      res.end();
+    } else {
+      res.status(400).json({ error: err.message });
+    }
+  }
+});
+
 app.get("/bots/:id/logs", authMiddleware, async (req, res) => {
   try {
     const tail = Number(req.query.tail ?? 100);
@@ -388,6 +436,24 @@ app.get("/bots/:id/logs", authMiddleware, async (req, res) => {
     res.type("text/plain").send(logs);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// Internal endpoint for bots to send logs (no auth required)
+app.post("/logs/:botId", async (req, res) => {
+  try {
+    const { botId } = req.params;
+    const { logs } = req.body;
+
+    if (!Array.isArray(logs)) {
+      return res.status(400).json({ error: "logs must be an array" });
+    }
+
+    await botService.saveLogs(botId, logs);
+    res.json({ ok: true, count: logs.length });
+  } catch (err: any) {
+    log.error(`Failed to save logs for bot ${req.params.botId}:`, err);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -531,6 +597,13 @@ app.use(express.static(webRoot));
 
 const port = Number(process.env.API_PORT ?? 3000);
 const host = process.env.API_HOST ?? "127.0.0.1";
-app.listen(port, host, () => {
+app.listen(port, host, async () => {
   log.info(`Bot Manager API running on http://${host}:${port}`);
+
+  // Auto-start bots that were running before server restart
+  try {
+    await botService.autoStartBots();
+  } catch (error) {
+    log.error("Failed to auto-start bots", error);
+  }
 });

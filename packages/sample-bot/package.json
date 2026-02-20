@@ -9,6 +9,7 @@
   },
   "keywords": ["telegram", "bot"],
   "dependencies": {
+    "@nikovonlas/bot-sdk": "^1.1.0",
     "grammy": "^1.23.0"
   },
   "devDependencies": {
@@ -19,8 +20,24 @@
   "bot": {
     "type": "telegram",
     "env": {
-      "required": ["BOT_TOKEN"],
-      "optional": ["DEBUG"]
+      "DEBUG": {
+        "required": false,
+        "description": "Enable debug logging (true/false)",
+        "default": "false",
+        "configKey": "debug"
+      },
+      "LANGUAGE": {
+        "required": false,
+        "description": "Bot language (en-US, ru-RU)",
+        "default": "en-US",
+        "configKey": "language"
+      },
+      "WELCOME_MESSAGE": {
+        "required": false,
+        "description": "Custom welcome message for /start command",
+        "default": "",
+        "configKey": "welcomeMessage"
+      }
     },
     "os-packages": []
   }

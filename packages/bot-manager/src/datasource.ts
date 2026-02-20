@@ -7,6 +7,7 @@ import { BotEnv } from "@/entities/BotEnv";
 import { BotRuntimeMeta } from "@/entities/BotRuntimeMeta";
 import { User } from "@/entities/User";
 import { BotAccess } from "@/entities/BotAccess";
+import { BotLog } from "@/entities/BotLog";
 
 // Database type selection
 // Priority: DB_TYPE env var > NODE_ENV
@@ -18,7 +19,7 @@ if (!["postgres", "sqlite"].includes(dbType)) {
 }
 
 // Common entities for both databases
-const entities = [Bot, BotEnv, BotRuntimeMeta, User, BotAccess];
+const entities = [Bot, BotEnv, BotRuntimeMeta, User, BotAccess, BotLog];
 
 // PostgreSQL configuration
 const postgresOptions = {
