@@ -6,6 +6,7 @@
 :80 {
   @webhook path_regexp webhook ^/w/(?P<bot_id>[a-zA-Z0-9_-]+)
   handle @webhook {
+    rewrite * /webhook
     reverse_proxy bot-{http.regexp.webhook.bot_id}:8080
   }
 
