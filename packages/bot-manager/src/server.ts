@@ -45,10 +45,12 @@ app.get("/auth/check", async (_req, res) => {
     const hasUsers = await userService.hasUsers();
     const isDev = process.env.NODE_ENV !== "production";
     const devBypassEnabled = isDev && process.env.DEV_BYPASS_AUTH === "true";
+    const botUsername = process.env.TELEGRAM_WIDGET_BOT_USERNAME || null;
 
     res.json({
       hasUsers,
       devBypassEnabled,
+      botUsername,
     });
   } catch (err: any) {
     log.error("auth check error", err);
@@ -68,6 +70,17 @@ app.post("/auth/telegram", rateLimit(10, 60000), async (req, res) => {
     const isValid = authService.validateTelegramAuth(authData);
     if (!isValid) {
       return res.status(401).json({ error: "Invalid Telegram authentication" });
+    }
+
+    // Whitelist check
+    const allowedIds = (process.env.ALLOWED_TELEGRAM_IDS || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map(Number);
+    if (allowedIds.length > 0 && !allowedIds.includes(authData.id)) {
+      log.warn(`Login denied for Telegram ID ${authData.id} — not in whitelist`);
+      return res.status(403).json({ error: "Access denied" });
     }
 
     // Find or create user
