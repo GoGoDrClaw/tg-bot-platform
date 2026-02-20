@@ -24,7 +24,7 @@ jobs:
         run: npm install --workspaces
 
       - name: Build SDK
-        run: npm --workspace @bot-platform/bot-sdk run build
+        run: npm --workspace @nikovonlas/bot-sdk run build
 
       - name: Check if version already published
         id: version_check
@@ -43,6 +43,6 @@ jobs:
 
       - name: Publish to npm
         if: steps.version_check.outputs.skip == 'false'
-        run: npm publish --workspace @bot-platform/bot-sdk --access public
+        run: npm publish --workspace @nikovonlas/bot-sdk --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
