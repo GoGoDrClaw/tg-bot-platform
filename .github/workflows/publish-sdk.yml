@@ -12,6 +12,8 @@ jobs:
   publish:
     name: Build & publish @nikovonlas/bot-sdk
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # required for npm OIDC Trusted Publisher
 
     steps:
       - uses: actions/checkout@v4
@@ -44,6 +46,4 @@ jobs:
 
       - name: Publish to npm
         if: steps.version_check.outputs.skip == 'false'
-        run: npm publish --workspace @nikovonlas/bot-sdk --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --workspace @nikovonlas/bot-sdk --access public --provenance
