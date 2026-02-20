@@ -1,6 +1,6 @@
 {
   "name": "@nikovonlas/bot-sdk",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "SDK for building bots on Bot Platform",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,7 +13,12 @@
     "dev": "tsc --watch",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["telegram", "bot", "sdk", "bot-platform"],
+  "keywords": [
+    "telegram",
+    "bot",
+    "sdk",
+    "bot-platform"
+  ],
   "author": "",
   "license": "MIT",
   "repository": {
