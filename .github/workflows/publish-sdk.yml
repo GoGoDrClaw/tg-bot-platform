@@ -21,7 +21,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
-          registry-url: 'https://registry.npmjs.org'
+          # Note: no registry-url here — it would write an empty _authToken
+          # to .npmrc which breaks OIDC auth
 
       - name: Install dependencies
         run: npm install --workspaces
