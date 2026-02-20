@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'packages/bot-sdk/**'
+      - '.github/workflows/publish-sdk.yml'
 
 jobs:
   publish:
