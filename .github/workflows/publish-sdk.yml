@@ -13,7 +13,7 @@ jobs:
     name: Build & publish @nikovonlas/bot-sdk
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # for --provenance attestation
+      id-token: write  # required for OIDC Trusted Publisher
 
     steps:
       - uses: actions/checkout@v4
@@ -22,6 +22,9 @@ jobs:
         with:
           node-version: '18'
           registry-url: 'https://registry.npmjs.org'
+
+      - name: Remove _authToken written by setup-node (allow OIDC)
+        run: npm config delete //registry.npmjs.org/:_authToken || true
 
       - name: Install dependencies
         run: npm install --workspaces
@@ -44,8 +47,6 @@ jobs:
             echo "Publishing $PKG_VERSION (npm has $NPM_VERSION)"
           fi
 
-      - name: Publish to npm
+      - name: Publish to npm via OIDC
         if: steps.version_check.outputs.skip == 'false'
         run: npm publish --workspace @nikovonlas/bot-sdk --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
