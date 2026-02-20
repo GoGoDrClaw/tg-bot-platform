@@ -43,9 +43,16 @@ function validateManifest(manifest: BotManifest): ValidationResult {
 
   // Validate env format
   if (manifest.env) {
-    // BOT_TOKEN should NOT be in manifest - it's a system variable
-    if ("BOT_TOKEN" in manifest.env) {
-      return { ok: false, reason: "BOT_TOKEN should not be in manifest.env - it's managed by the platform" };
+    // These keys are managed by the platform and must not appear in manifest.env
+    const SYSTEM_ENV_KEYS = [
+      "BOT_TOKEN", "BOT_ID", "PORT", "WEBHOOK_URL",
+      "TELEGRAM_API_BASE", "BOT_MANAGER_URL", "DATABASE_URL",
+      "BOT_OWNER_ID", "BOT_ADMIN_IDS",
+    ];
+    for (const key of SYSTEM_ENV_KEYS) {
+      if (key in manifest.env) {
+        return { ok: false, reason: `${key} should not be in manifest.env - it's managed by the platform` };
+      }
     }
 
     // Validate each env variable

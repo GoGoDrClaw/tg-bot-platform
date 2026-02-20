@@ -554,8 +554,13 @@ function buildBotCard(bot) {
   );
   content.appendChild(meta(`image: ${bot.imageName}`));
   content.appendChild(meta(`created: ${created}`));
+  const SYSTEM_ENV_KEYS = new Set([
+    "BOT_TOKEN", "BOT_ID", "PORT", "WEBHOOK_URL",
+    "TELEGRAM_API_BASE", "BOT_MANAGER_URL", "DATABASE_URL",
+    "BOT_OWNER_ID", "BOT_ADMIN_IDS",
+  ]);
   const envSummary = (bot.envs || [])
-    .filter((e) => e.key !== "BOT_TOKEN")
+    .filter((e) => !SYSTEM_ENV_KEYS.has(e.key))
     .map((e) => `${e.key}=${e.value}`)
     .join(", ");
   content.appendChild(meta(`env: ${envSummary || "—"}`));
