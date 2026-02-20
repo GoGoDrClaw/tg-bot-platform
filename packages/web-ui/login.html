@@ -67,6 +67,9 @@
           if (data.devBypassEnabled) {
             document.getElementById("dev-login-section").style.display = "block";
           }
+
+          // Load Telegram Widget with bot username from server config
+          loadTelegramWidget(data.botUsername);
         } catch (error) {
           console.error("Failed to check user status:", error);
         }
@@ -145,12 +148,16 @@
       }
 
       // Load Telegram Login Widget
-      function loadTelegramWidget() {
-        // Get bot username from environment (will be set via server-side rendering or config)
-        // For now, we'll use a placeholder - you need to configure this
+      function loadTelegramWidget(botUsername) {
+        if (!botUsername) {
+          document.getElementById("login-error").textContent =
+            "Bot not configured. Set TELEGRAM_WIDGET_BOT_USERNAME in server env.";
+          document.getElementById("login-error").style.display = "block";
+          return;
+        }
         const script = document.createElement("script");
         script.src = "https://telegram.org/js/telegram-widget.js?22";
-        script.setAttribute("data-telegram-login", "YOUR_BOT_USERNAME"); // TODO: Configure this
+        script.setAttribute("data-telegram-login", botUsername);
         script.setAttribute("data-size", "large");
         script.setAttribute("data-radius", "8");
         script.setAttribute("data-onauth", "onTelegramAuth(user)");
@@ -168,8 +175,7 @@
           return;
         }
 
-        checkFirstUser();
-        loadTelegramWidget();
+        checkFirstUser(); // also calls loadTelegramWidget(botUsername)
       });
     </script>
   </body>
