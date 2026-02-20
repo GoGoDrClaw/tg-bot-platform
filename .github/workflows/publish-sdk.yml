@@ -13,7 +13,7 @@ jobs:
     name: Build & publish @nikovonlas/bot-sdk
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # required for npm Trusted Publisher (OIDC)
+      id-token: write  # for --provenance attestation
 
     steps:
       - uses: actions/checkout@v4
@@ -21,8 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
-          # Note: no registry-url here — it would write an empty _authToken
-          # to .npmrc which breaks OIDC auth
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: npm install --workspaces
@@ -48,3 +47,5 @@ jobs:
       - name: Publish to npm
         if: steps.version_check.outputs.skip == 'false'
         run: npm publish --workspace @nikovonlas/bot-sdk --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
